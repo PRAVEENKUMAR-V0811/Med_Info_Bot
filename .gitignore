@@ -1,1 +1,19 @@
-.env
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+env/
+venv/
+*.env
+
+# Data / models
+vector_store.faiss
+metadata.pkl
+
+# PDFs
+# *.pdf
+
+# IDE / OS
+.vscode/
+.DS_Store
