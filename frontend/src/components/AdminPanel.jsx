@@ -1,50 +1,174 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-import toast from 'react-hot-toast';
+import React, { useState } from "react";
+import { FiUploadCloud, FiTrash2 } from "react-icons/fi";
+import toast, { Toaster } from "react-hot-toast";
 
+export default function AdminPanel() {
+  const [files, setFiles] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-export default function AdminPanel({ API_BASE }) {
-    const [files, setFiles] = useState([]);
-    const [uploading, setUploading] = useState(false);
+  const handleFile = (file) => {
+    if (!file) return;
 
-
-    function onFilesSelected(e) {
-        setFiles(Array.from(e.target.files));
+    if (file.type !== "application/pdf") {
+      toast.error("Only PDF files are allowed!");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File must be less than 10MB");
+      return;
+    }
+    if (files.some((f) => f.name === file.name)) {
+      toast.error(`${file.name} is already added!`);
+      return;
     }
 
+    setFiles((prev) => [...prev, file]);
+    toast.success(`${file.name} added!`);
+  };
 
-    async function upload() {
-        if (files.length === 0) return toast('No files selected');
-        setUploading(true);
-        const form = new FormData();
-        files.forEach((f) => form.append('files', f));
-        try {
-            const res = await axios.post(`${API_BASE}/upload`, form, {
-                headers: { 'Content-Type': 'multipart/form-data' },
-            });
-            toast.success(res?.data?.message || 'Upload successful');
-            setFiles([]);
-        } catch (err) {
-            toast.error(err?.response?.data?.message || 'Upload failed');
-        } finally {
-            setUploading(false);
-        }
+  const handleFileInput = (e) => {
+    Array.from(e.target.files).forEach(handleFile);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    Array.from(e.dataTransfer.files).forEach(handleFile);
+  };
+
+  const handleRemove = (fileName) => {
+    setFiles(files.filter((f) => f.name !== fileName));
+    toast("File removed", { icon: "🗑️" });
+  };
+
+  const handleProcess = async () => {
+    if (files.length === 0) {
+      toast.error("No files selected!");
+      return;
     }
 
+    setLoading(true);
+    toast.loading("Processing files...", { id: "processToast" });
 
-    return (
-        <div className="p-6">
-            <h3 className="text-xl font-semibold mb-4">Upload PDFs</h3>
-            <input type="file" accept=".pdf" multiple onChange={onFilesSelected} className="file-input file-input-bordered w-full max-w-xs" />
-            {files.length > 0 && (
-                <ul className="mt-4 space-y-2">
-                    {files.map((f, idx) => <li key={idx} className="text-sm">{f.name}</li>)}
-                </ul>
-            )}
-            <div className="flex gap-2 mt-4">
-                <button className={`btn btn-primary ${uploading ? 'loading' : ''}`} onClick={upload}>Upload</button>
-                <button className="btn btn-ghost" onClick={() => setFiles([])}>Clear</button>
-            </div>
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      toast.dismiss("processToast");
+      toast.success("Files processed successfully!");
+      setFiles([]);
+    } catch (err) {
+      toast.dismiss("processToast");
+      toast.error("Failed to process files.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTryChatbot = () => {
+    // Redirect to chatbot page or open modal
+    window.location.href = "/chat"; // change route as needed
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <Toaster position="top-right" />
+
+      {/* Header */}
+      <header className="bg-[#38BDF8] text-white text-lg font-bold py-4 px-6 shadow-md flex justify-between items-center">
+        <span>Smart Chatbot – Admin Panel</span>
+        <button
+          onClick={handleTryChatbot}
+          className="bg-white text-[#38BDF8] font-semibold px-4 py-1.5 rounded-md hover:bg-gray-100 transition cursor-pointer"
+        >
+          Try Chatbot
+        </button>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col items-center justify-center px-4">
+        {/* Drop Box */}
+        {files.length === 0 && !loading && (
+          <div
+            className="border-2 border-dashed border-gray-300 bg-white p-10 rounded-xl cursor-pointer hover:border-[#38BDF8] transition text-center w-full max-w-xl"
+            onDrop={handleDrop}
+            onDragOver={(e) => e.preventDefault()}
+            onClick={() => document.getElementById("fileInput").click()}
+          >
+            <FiUploadCloud className="text-4xl text-[#38BDF8] mx-auto mb-3" />
+            <p className="text-base font-medium text-gray-600">
+              Drag & drop your PDF files
+            </p>
+            <p className="text-sm text-gray-500">
+              or click to browse (multiple, max 10MB each)
+            </p>
+            <input
+              id="fileInput"
+              type="file"
+              accept="application/pdf"
+              multiple
+              className="hidden"
+              onChange={handleFileInput}
+            />
+          </div>
+        )}
+
+        {/* Loading Spinner */}
+        {loading && (
+          <div className="mt-6 flex flex-col items-center gap-2">
+            <div className="h-10 w-10 border-4 border-[#38BDF8] border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm font-medium text-[#38BDF8]">
+              Processing files...
+            </p>
+          </div>
+        )}
+
+        {/* Selected Files */}
+        {files.length > 0 && !loading && (
+          <div className="mt-6 w-full max-w-xl text-center">
+            <h3 className="font-medium text-gray-700 mb-3">Selected Files:</h3>
+            <ul className="space-y-2 text-left">
+              {files.map((file, idx) => (
+                <li
+                  key={idx}
+                  className="flex justify-between items-center bg-white px-4 py-2 rounded-lg shadow-sm border"
+                >
+                  <span className="text-sm text-gray-700">
+                    {file.name}{" "}
+                    <span className="text-xs text-gray-400">
+                      ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                    </span>
+                  </span>
+                  <button
+                    onClick={() => handleRemove(file.name)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <FiTrash2 size={18} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+
+            <button
+              onClick={handleProcess}
+              disabled={loading}
+              className={`mt-6 px-6 py-2 rounded-lg bg-[#38BDF8] text-white font-medium shadow-md hover:bg-[#0ea5e9] transition ${
+                loading ? "opacity-70 cursor-not-allowed" : ""
+              }`}
+            >
+              {loading ? "Processing..." : "Upload & Process"}
+            </button>
+          </div>
+        )}
+
+        {/* Disclaimer */}
+        <div className="mt-10 max-w-xl text-sm text-gray-600 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <h3 className="font-semibold text-yellow-800 mb-1">Disclaimer:</h3>
+          <p>
+            Uploaded PDF files are used only for processing and are not stored
+            permanently. Please do not upload sensitive or confidential
+            documents.
+          </p>
         </div>
-    );
+      </main>
+    </div>
+  );
 }

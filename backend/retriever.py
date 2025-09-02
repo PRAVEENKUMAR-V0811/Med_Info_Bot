@@ -38,9 +38,6 @@ headers = {
     "Content-Type": "application/json",
 }
 
-
-import time
-
 def generate_answer(query: str, top_k: int = 3, max_retries: int = 3, retry_delay: int = 5):
     """Generate an answer using retrieved documents and OpenRouter API with user-friendly error handling."""
     retrieved_docs = retrieve(query, top_k)

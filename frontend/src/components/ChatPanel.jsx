@@ -1,26 +1,240 @@
-import React, { useRef } from 'react';
-import ChatMessage from './ChatMessage';
+import React, { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom"; // React Router for navigation
 
+const LOCAL_STORAGE_KEY = "chatbot_conversations";
 
-export default function ChatPanel({ activeConv, sendMessage }) {
-    const inputRef = useRef();
-    return (
-        <div className="col-span-1 md:col-span-2 flex flex-col h-[70vh] bg-white rounded-lg shadow p-4">
-            <div className="flex-1 overflow-auto space-y-4 p-2">
-                {activeConv?.messages?.length ? (
-                    activeConv.messages.map((m) => <ChatMessage key={m.id} message={m} />)
-                ) : (
-                    <div className="opacity-60 text-center mt-8">Say hi 👋 — ask questions about uploaded PDFs</div>
-                )}
-            </div>
-            <div className="mt-4">
-                <div className="form-control">
-                    <div className="input-group">
-                        <input ref={inputRef} type="text" placeholder="Ask something..." className="input input-bordered flex-1" onKeyDown={(e) => { if (e.key === 'Enter') { sendMessage(e.target.value); e.target.value = ''; } }} />
-                        <button className="btn btn-primary" onClick={() => { const v = inputRef.current.value; sendMessage(v); inputRef.current.value = ''; }}>Send</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+export default function ChatPanel() {
+  const [conversations, setConversations] = useState([
+    { title: "Chat 1", messages: [] }, // default chat
+  ]);
+  const [activeChatIndex, setActiveChatIndex] = useState(0);
+  const [inputMessage, setInputMessage] = useState("");
+  const [botThinking, setBotThinking] = useState(false);
+
+  const chatEndRef = useRef(null);
+  const sidePanelRef = useRef(null);
+
+  // Load conversations from localStorage
+  useEffect(() => {
+    const savedConversations = JSON.parse(
+      localStorage.getItem(LOCAL_STORAGE_KEY)
     );
+    if (savedConversations) {
+      setConversations(savedConversations);
+      setActiveChatIndex(0);
+    }
+  }, []);
+
+  // Save conversations to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(conversations));
+  }, [conversations]);
+
+  // Scroll chat to bottom whenever messages update
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [activeChatIndex, conversations, botThinking]);
+
+  const handleNewChat = () => {
+    const newChat = {
+      title: `Chat ${conversations.length + 1}`,
+      messages: [],
+    };
+    setConversations([newChat, ...conversations]);
+    setActiveChatIndex(0);
+  };
+
+  const handleDeleteChat = (index) => {
+    const updated = conversations.filter((_, i) => i !== index);
+    setConversations(updated);
+    if (activeChatIndex === index) setActiveChatIndex(null);
+    else if (activeChatIndex > index) setActiveChatIndex(activeChatIndex - 1);
+  };
+
+  const handleClearChat = () => {
+    if (activeChatIndex === null) return;
+    const updatedConversations = [...conversations];
+    updatedConversations[activeChatIndex].messages = [];
+    setConversations(updatedConversations);
+  };
+
+  const handleSelectChat = (index) => {
+    setActiveChatIndex(index);
+  };
+
+  const handleSendMessage = () => {
+    if (!inputMessage.trim() || activeChatIndex === null) return;
+
+    const updatedConversations = [...conversations];
+    const userMessage = { type: "user", text: inputMessage };
+    updatedConversations[activeChatIndex].messages.push(userMessage);
+    setConversations(updatedConversations);
+    setInputMessage("");
+
+    // Bot thinking
+    setBotThinking(true);
+    setTimeout(() => {
+      const botMessage = {
+        type: "bot",
+        text: `Bot replying to: ${userMessage.text}`,
+      };
+      const updated = [...updatedConversations];
+      updated[activeChatIndex].messages.push(botMessage);
+      setConversations(updated);
+      setBotThinking(false);
+    }, 1500); // simulate response delay
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") handleSendMessage();
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col font-['Urbanist'] bg-[#FDFEFE]">
+      {/* Header with Contact Button */}
+      <header className="bg-[#38BDF8] text-white text-xl font-bold py-4 px-6 shadow-md flex justify-between items-center">
+        <span>Smart Chatbot</span>
+        <Link
+          to="/support"
+          className="bg-white text-[#38BDF8] px-3 py-1 rounded-md font-medium hover:bg-gray-100 transition"
+        >
+          Contact / Support
+        </Link>
+      </header>
+
+      <div className="flex flex-1 overflow-hidden">
+        {/* Side Panel */}
+        <div className="w-72 bg-white border-r border-gray-200 flex flex-col">
+          <div className="p-4 flex flex-col flex-1 overflow-hidden">
+            {/* Buttons */}
+            <div className="flex flex-col mb-4">
+              <button
+                onClick={handleNewChat}
+                className="mb-2 p-2 bg-[#38BDF8] text-white rounded-md hover:bg-[#0ea5e9] transition"
+              >
+                + New Chat
+              </button>
+              {activeChatIndex !== null && (
+                <button
+                  onClick={handleClearChat}
+                  className="p-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition"
+                >
+                  Clear Chat
+                </button>
+              )}
+            </div>
+
+            {/* Chat List */}
+            <div
+              className="flex-1 overflow-y-auto"
+              ref={sidePanelRef}
+              style={{ scrollbarWidth: "thin" }}
+            >
+              {conversations.length === 0 && (
+                <p className="text-gray-400 text-center mt-10">
+                  No chats yet.
+                </p>
+              )}
+              <ul>
+                {conversations.map((chat, index) => (
+                  <li
+                    key={index}
+                    className={`flex justify-between items-center cursor-pointer px-4 py-2 border-b border-gray-100 ${
+                      index === activeChatIndex
+                        ? "bg-[#E0F2FE]"
+                        : "hover:bg-gray-50"
+                    }`}
+                  >
+                    <span onClick={() => handleSelectChat(index)}>
+                      {chat.title}
+                    </span>
+                    <button
+                      onClick={() => handleDeleteChat(index)}
+                      className="text-red-500 text-xs hover:text-red-700"
+                    >
+                      Delete
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Side Panel Disclaimer */}
+            <div className="p-3 text-xs text-gray-500 border-t border-gray-200 text-center">
+              This chatbot is AI-powered. Responses may not be accurate.
+            </div>
+          </div>
+        </div>
+
+        {/* Chat Window */}
+        <div className="flex-1 flex flex-col justify-between">
+          <div className="flex-1 p-4 overflow-y-auto space-y-4">
+            {activeChatIndex === null ? (
+              <p className="text-gray-400 text-center mt-20">
+                Select a chat or start a new conversation.
+              </p>
+            ) : (
+              <>
+                {conversations[activeChatIndex].messages.map((msg, idx) => (
+                  <div
+                    key={idx}
+                    className={`flex ${
+                      msg.type === "user" ? "justify-end" : "justify-start"
+                    }`}
+                  >
+                    <div
+                      className={`px-4 py-2 rounded-lg max-w-xs break-words ${
+                        msg.type === "user"
+                          ? "bg-[#38BDF8] text-white"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
+                    >
+                      {msg.text}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Bot thinking animation */}
+                {botThinking && (
+                  <div className="flex justify-start">
+                    <div className="flex items-center px-4 py-2 bg-gray-100 rounded-lg gap-1 animate-pulse">
+                      <div className="h-2 w-2 bg-gray-400 rounded-full" />
+                      <div className="h-2 w-2 bg-gray-400 rounded-full" />
+                      <div className="h-2 w-2 bg-gray-400 rounded-full" />
+                    </div>
+                  </div>
+                )}
+                <div ref={chatEndRef} />
+              </>
+            )}
+          </div>
+
+          {/* Input Box */}
+          {activeChatIndex !== null && (
+            <div className="p-4 border-t border-gray-200 flex items-center gap-3">
+              <input
+                type="text"
+                placeholder="Type a message..."
+                className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:border-[#38BDF8]"
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyDown={handleKeyPress}
+              />
+              <button
+                onClick={handleSendMessage}
+                className="bg-[#38BDF8] text-white px-4 py-2 rounded-md hover:bg-[#0ea5e9] transition"
+              >
+                Send
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="text-center text-gray-400 text-xs py-2 border-t border-gray-200">
+        © 2025 Smart Chatbot. All rights reserved.
+      </footer>
+    </div>
+  );
 }
