@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { FiUploadCloud, FiTrash2 } from "react-icons/fi";
 import toast, { Toaster } from "react-hot-toast";
+import MedLogo from "../assets/MedLogo.png";
+import { Link } from "react-router-dom";
 
 export default function AdminPanel() {
   const [files, setFiles] = useState([]);
@@ -41,46 +43,44 @@ export default function AdminPanel() {
   };
 
   const handleProcess = async () => {
-  if (files.length === 0) {
-    toast.error("No files selected!");
-    return;
-  }
-
-  setLoading(true);
-  toast.loading("Processing files...", { id: "processToast" });
-
-  try {
-    const formData = new FormData();
-    files.forEach((file) => formData.append("files", file));
-
-    const res = await fetch("http://127.0.0.1:8000/upload", {
-      method: "POST",
-      body: formData,
-    });
-
-    const data = await res.json();
-    console.log(data);
-
-    toast.dismiss("processToast");
-
-    if (data.success) {
-      toast.success(data.message);
-      setFiles([]);
-    } else {
-      toast.error("Failed to process files.");
+    if (files.length === 0) {
+      toast.error("No files selected!");
+      return;
     }
-  } catch (err) {
-    toast.dismiss("processToast");
-    toast.error("Error uploading files.");
-    console.error(err);
-  } finally {
-    setLoading(false);
-  }
-};
 
+    setLoading(true);
+    toast.loading("Processing files...", { id: "processToast" });
+
+    try {
+      const formData = new FormData();
+      files.forEach((file) => formData.append("files", file));
+
+      const res = await fetch("http://127.0.0.1:8000/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      console.log(data);
+
+      toast.dismiss("processToast");
+
+      if (data.success) {
+        toast.success(data.message);
+        setFiles([]);
+      } else {
+        toast.error("Failed to process files.");
+      }
+    } catch (err) {
+      toast.dismiss("processToast");
+      toast.error("Error uploading files.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleTryChatbot = () => {
-    // Redirect to chatbot page or open modal
     window.location.href = "/chat"; // change route as needed
   };
 
@@ -90,7 +90,20 @@ export default function AdminPanel() {
 
       {/* Header */}
       <header className="bg-[#38BDF8] text-white text-lg font-bold py-4 px-6 shadow-md flex justify-between items-center">
-        <span>Smart Chatbot – Admin Panel</span>
+        <div className="flex items-center gap-2">
+          <Link to="/">
+            <img 
+              src={MedLogo} 
+              alt="MedXplorer Logo" 
+              className="h-8 w-auto cursor-pointer"
+            />
+          </Link>
+          <Link to="/">
+            <span>MedXplorer – Admin Panel</span>
+          </Link>
+          
+        </div>
+
         <button
           onClick={handleTryChatbot}
           className="bg-white text-[#38BDF8] font-semibold px-4 py-1.5 rounded-md hover:bg-gray-100 transition cursor-pointer"
@@ -185,6 +198,11 @@ export default function AdminPanel() {
           </p>
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="text-center text-gray-400 text-xs py-3 border-t border-gray-200">
+        ⚠️ Disclaimer: Information provided is for educational purposes only and not a substitute for professional medical advice. © 2025 MedXplorer. All rights reserved.
+      </footer>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom"; // React Router for navigation
+import MedLogo from "../assets/MedLogo.png"
 
 const LOCAL_STORAGE_KEY = "chatbot_conversations";
 
@@ -113,8 +114,18 @@ export default function ChatPanel() {
     <div className="min-h-screen flex flex-col font-['Urbanist'] bg-[#FDFEFE]">
       {/* Header */}
       <header className="bg-[#38BDF8] text-white text-xl font-bold py-4 px-6 shadow-md flex justify-between items-center">
-        <span>MedXplorer</span>
-
+        <div className="flex items-center gap-2">
+          <Link to="/">
+                      <img 
+                        src={MedLogo} 
+                        alt="MedXplorer Logo" 
+                        className="h-8 w-auto cursor-pointer"
+                      />
+                    </Link>
+                    <Link to="/">
+                      <span>MedXplorer – Admin Panel</span>
+                    </Link>
+        </div>
         <div className="flex items-center gap-4">
           <span className="text-white text-sm font-normal">
             To add a new drug in our documentation, please contact us
@@ -127,6 +138,7 @@ export default function ChatPanel() {
           </Link>
         </div>
       </header>
+
 
 
       <div className="flex flex-1 overflow-hidden">
@@ -183,7 +195,7 @@ export default function ChatPanel() {
               </ul>
             </div>
             <div className="p-3 text-sm text-gray-500 border-t border-gray-200 text-center">
-              Disclaimer : For informational purposes only. Not a substitute for professional medical advice.
+              ⚠️ Disclaimer : For informational purposes only. Not a substitute for professional medical advice.
             </div>
           </div>
         </div>

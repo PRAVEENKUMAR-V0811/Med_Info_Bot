@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import emailjs from "@emailjs/browser";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import ContactImage from '../assets/image.png'; // replace with your image path
+import MedLogo from '../assets/MedLogo.png';
 
 export default function ContactForm() {
   const navigate = useNavigate();
@@ -59,19 +60,30 @@ export default function ContactForm() {
 
       {/* Header with Try Bot Button */}
       <header className="bg-[#38BDF8] text-white flex justify-between items-center px-6 py-4 shadow-md">
+      <div className="flex items-center gap-2">
+        <Link to="/">
+            <img 
+              src={MedLogo} 
+              alt="MedXplorer Logo" 
+              className="h-8 w-auto cursor-pointer"
+            />
+          </Link>
         <h1 className="text-xl font-bold">Contact Us</h1>
-        <button
-          onClick={() => navigate("/chat")}
-          className="bg-white text-[#38BDF8] px-4 py-2 rounded-md font-medium hover:bg-gray-100 transition"
-        >
-          Try Bot
-        </button>
-      </header>
+      </div>
+
+      <button
+        onClick={() => navigate("/chat")}
+        className="bg-white text-[#38BDF8] px-4 py-2 rounded-md font-medium hover:bg-gray-100 transition"
+      >
+        Try Bot
+      </button>
+    </header>
+
 
       <div className="flex flex-1 overflow-hidden p-6 gap-6">
         {/* Left: Contact Form */}
         <div className="flex-1 bg-white p-6 rounded-xl shadow-md flex flex-col">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Send us a message</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4 cursor-pointer">Send us a message</h2>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4 flex-1">
             <input
               type="text"
