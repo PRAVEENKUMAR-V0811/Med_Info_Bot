@@ -12,7 +12,7 @@ vector_store.faiss
 metadata.pkl
 
 # PDFs
-# *.pdf
+*.pdf
 
 # IDE / OS
 .vscode/
