@@ -2,8 +2,7 @@ import React, { useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import emailjs from "@emailjs/browser";
 import { useNavigate } from "react-router-dom";
-// import ContactImage from '../assets/Contact.png';
-import ContactImage from '../assets/image.png';
+import ContactImage from '../assets/image.png'; // replace with your image path
 
 export default function ContactForm() {
   const navigate = useNavigate();
@@ -14,6 +13,11 @@ export default function ContactForm() {
     message: "",
   });
   const [loading, setLoading] = useState(false);
+
+  // Load environment variables (Vite requires prefix VITE_)
+  const SERVICE_ID = import.meta.env.VITE_SERVICE_ID;
+  const TEMPLATE_ID = import.meta.env.VITE_TEMPLATE_ID;
+  const PUBLIC_KEY = import.meta.env.VITE_PUBLIC_KEY;
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -32,10 +36,10 @@ export default function ContactForm() {
 
     try {
       await emailjs.send(
-        "YOUR_SERVICE_ID",
-        "YOUR_TEMPLATE_ID",
+        SERVICE_ID,
+        TEMPLATE_ID,
         formData,
-        "YOUR_PUBLIC_KEY"
+        PUBLIC_KEY
       );
       toast.dismiss("sendToast");
       toast.success("Message sent successfully!");
@@ -73,23 +77,25 @@ export default function ContactForm() {
               type="text"
               name="name"
               placeholder="Your Name"
-              className="form-input"
+              className="form-input border border-gray-300 rounded-md px-3 py-2"
               value={formData.name}
               onChange={handleChange}
+              required
             />
             <input
               type="email"
               name="email"
               placeholder="Your Email"
-              className="form-input"
+              className="form-input border border-gray-300 rounded-md px-3 py-2"
               value={formData.email}
               onChange={handleChange}
+              required
             />
             <input
               type="text"
               name="subject"
               placeholder="Subject (optional)"
-              className="form-input"
+              className="form-input border border-gray-300 rounded-md px-3 py-2"
               value={formData.subject}
               onChange={handleChange}
             />
@@ -97,15 +103,16 @@ export default function ContactForm() {
               name="message"
               rows="5"
               placeholder="Your Message"
-              className="form-input resize-none flex-1"
+              className="form-input border border-gray-300 rounded-md px-3 py-2 resize-none flex-1"
               value={formData.message}
               onChange={handleChange}
+              required
             ></textarea>
 
             <button
               type="submit"
               disabled={loading}
-              className={`btn-primary mt-2 ${
+              className={`bg-[#38BDF8] text-white px-4 py-2 rounded-md font-medium hover:bg-[#0ea5e9] transition mt-2 ${
                 loading ? "opacity-70 cursor-not-allowed" : ""
               }`}
             >
@@ -118,7 +125,7 @@ export default function ContactForm() {
         <div className="flex-1 bg-white p-6 rounded-xl shadow-md flex flex-col justify-between items-center">
           {/* Image */}
           <img
-            src={ContactImage}// replace with your image path
+            src={ContactImage}
             alt="Contact Illustration"
             className="max-h-100 object-contain mb-4"
           />
@@ -133,7 +140,7 @@ export default function ContactForm() {
 
       {/* Footer */}
       <footer className="text-center text-gray-400 text-xs py-2 border-t border-gray-200">
-        © 2025 Smart Chatbot. All rights reserved.
+        © 2025 MedXplorer. All rights reserved.
       </footer>
     </div>
   );

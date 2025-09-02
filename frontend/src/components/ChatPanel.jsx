@@ -14,6 +14,8 @@ export default function ChatPanel() {
   const chatEndRef = useRef(null);
   const sidePanelRef = useRef(null);
 
+  const BACKEND_URL = "http://127.0.0.1:8000/chat"; // Update if backend is hosted elsewhere
+
   // Load conversations from localStorage
   useEffect(() => {
     const savedConversations = JSON.parse(
@@ -62,7 +64,8 @@ export default function ChatPanel() {
     setActiveChatIndex(index);
   };
 
-  const handleSendMessage = () => {
+  // Send message to backend
+  const handleSendMessage = async () => {
     if (!inputMessage.trim() || activeChatIndex === null) return;
 
     const updatedConversations = [...conversations];
@@ -70,19 +73,36 @@ export default function ChatPanel() {
     updatedConversations[activeChatIndex].messages.push(userMessage);
     setConversations(updatedConversations);
     setInputMessage("");
-
-    // Bot thinking
     setBotThinking(true);
-    setTimeout(() => {
+
+    try {
+      const response = await fetch(BACKEND_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: userMessage.text }),
+      });
+
+      const data = await response.json();
       const botMessage = {
         type: "bot",
-        text: `Bot replying to: ${userMessage.text}`,
+        text: data.answer || "Sorry, no response from server.",
+      };
+
+      const updated = [...updatedConversations];
+      updated[activeChatIndex].messages.push(botMessage);
+      setConversations(updated);
+    } catch (error) {
+      console.error("Error contacting backend:", error);
+      const botMessage = {
+        type: "bot",
+        text: "There was an error contacting the server. Please try again.",
       };
       const updated = [...updatedConversations];
       updated[activeChatIndex].messages.push(botMessage);
       setConversations(updated);
+    } finally {
       setBotThinking(false);
-    }, 1500); // simulate response delay
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -91,22 +111,28 @@ export default function ChatPanel() {
 
   return (
     <div className="min-h-screen flex flex-col font-['Urbanist'] bg-[#FDFEFE]">
-      {/* Header with Contact Button */}
+      {/* Header */}
       <header className="bg-[#38BDF8] text-white text-xl font-bold py-4 px-6 shadow-md flex justify-between items-center">
-        <span>Smart Chatbot</span>
-        <Link
-          to="/support"
-          className="bg-white text-[#38BDF8] px-3 py-1 rounded-md font-medium hover:bg-gray-100 transition"
-        >
-          Contact / Support
-        </Link>
+        <span>MedXplorer</span>
+
+        <div className="flex items-center gap-4">
+          <span className="text-white text-sm font-normal">
+            To add a new drug in our documentation, please contact us
+          </span>
+          <Link
+            to="/support"
+            className="bg-white text-[#38BDF8] px-3 py-1 rounded-md font-medium hover:bg-gray-100 transition"
+          >
+            Contact
+          </Link>
+        </div>
       </header>
+
 
       <div className="flex flex-1 overflow-hidden">
         {/* Side Panel */}
         <div className="w-72 bg-white border-r border-gray-200 flex flex-col">
           <div className="p-4 flex flex-col flex-1 overflow-hidden">
-            {/* Buttons */}
             <div className="flex flex-col mb-4">
               <button
                 onClick={handleNewChat}
@@ -123,8 +149,6 @@ export default function ChatPanel() {
                 </button>
               )}
             </div>
-
-            {/* Chat List */}
             <div
               className="flex-1 overflow-y-auto"
               ref={sidePanelRef}
@@ -158,10 +182,8 @@ export default function ChatPanel() {
                 ))}
               </ul>
             </div>
-
-            {/* Side Panel Disclaimer */}
-            <div className="p-3 text-xs text-gray-500 border-t border-gray-200 text-center">
-              This chatbot is AI-powered. Responses may not be accurate.
+            <div className="p-3 text-sm text-gray-500 border-t border-gray-200 text-center">
+              Disclaimer : For informational purposes only. Not a substitute for professional medical advice.
             </div>
           </div>
         </div>
@@ -193,8 +215,6 @@ export default function ChatPanel() {
                     </div>
                   </div>
                 ))}
-
-                {/* Bot thinking animation */}
                 {botThinking && (
                   <div className="flex justify-start">
                     <div className="flex items-center px-4 py-2 bg-gray-100 rounded-lg gap-1 animate-pulse">
@@ -209,7 +229,6 @@ export default function ChatPanel() {
             )}
           </div>
 
-          {/* Input Box */}
           {activeChatIndex !== null && (
             <div className="p-4 border-t border-gray-200 flex items-center gap-3">
               <input
@@ -231,9 +250,8 @@ export default function ChatPanel() {
         </div>
       </div>
 
-      {/* Footer */}
       <footer className="text-center text-gray-400 text-xs py-2 border-t border-gray-200">
-        © 2025 Smart Chatbot. All rights reserved.
+        © 2025 MedXplorer. All rights reserved.
       </footer>
     </div>
   );

@@ -41,27 +41,43 @@ export default function AdminPanel() {
   };
 
   const handleProcess = async () => {
-    if (files.length === 0) {
-      toast.error("No files selected!");
-      return;
-    }
+  if (files.length === 0) {
+    toast.error("No files selected!");
+    return;
+  }
 
-    setLoading(true);
-    toast.loading("Processing files...", { id: "processToast" });
+  setLoading(true);
+  toast.loading("Processing files...", { id: "processToast" });
 
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+  try {
+    const formData = new FormData();
+    files.forEach((file) => formData.append("files", file));
 
-      toast.dismiss("processToast");
-      toast.success("Files processed successfully!");
+    const res = await fetch("http://127.0.0.1:8000/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+    console.log(data);
+
+    toast.dismiss("processToast");
+
+    if (data.success) {
+      toast.success(data.message);
       setFiles([]);
-    } catch (err) {
-      toast.dismiss("processToast");
+    } else {
       toast.error("Failed to process files.");
-    } finally {
-      setLoading(false);
     }
-  };
+  } catch (err) {
+    toast.dismiss("processToast");
+    toast.error("Error uploading files.");
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleTryChatbot = () => {
     // Redirect to chatbot page or open modal

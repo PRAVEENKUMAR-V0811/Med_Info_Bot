@@ -10,27 +10,33 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Load FAISS index and metadata
-with open("metadata.pkl", "rb") as f:
-    docs, metadata = pickle.load(f)
-
-index = faiss.read_index("vector_store.faiss")
-
 # Load embedding model
 embed_model = SentenceTransformer("all-MiniLM-L6-v2")
 
+# Initialize docs, metadata, and FAISS index safely
+if os.path.exists("metadata.pkl") and os.path.exists("vector_store.faiss"):
+    with open("metadata.pkl", "rb") as f:
+        docs, metadata = pickle.load(f)
+    index = faiss.read_index("vector_store.faiss")
+    print(f"✅ Loaded {len(docs)} chunks from existing FAISS index")
+else:
+    docs, metadata = [], []
+    index = None
+    print("⚠️  metadata.pkl or vector_store.faiss not found. Upload PDFs first to create the index.")
 
-def retrieve(query: str, top_k: int = 10):
+def retrieve(query: str, top_k: int = 5):
     """Retrieve the top_k most relevant documents for a query."""
+    if index is None or not docs:
+        return []  # No index yet
     query_embedding = embed_model.encode([query]).astype("float32")
     D, I = index.search(np.array(query_embedding), top_k)
     results = [(docs[i], metadata[i]) for i in I[0]]
     return results
 
-
 # API configuration
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-MODEL_ID = "deepseek/deepseek-r1:free"
+# MODEL_ID = "deepseek/deepseek-r1:free"
+MODEL_ID = "openai/gpt-4-turbo"
 API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 headers = {
@@ -39,26 +45,41 @@ headers = {
 }
 
 def generate_answer(query: str, top_k: int = 3, max_retries: int = 3, retry_delay: int = 5):
-    """Generate an answer using retrieved documents and OpenRouter API with user-friendly error handling."""
+    """Generate a formatted answer using retrieved documents and OpenRouter API."""
     retrieved_docs = retrieve(query, top_k)
 
+    # If no documents retrieved, fallback message
     if not retrieved_docs:
-        return "Sorry, no relevant information found in the uploaded PDFs."
+        return (
+            "Response:\nSorry, we couldn't find relevant information about your query in our PDF database.\n"
+            "Please fill out the contact form to request adding this drug to our documentation.\n\n"
+            "Citations: None\n"
+            "Disclaimer: For informational purposes only. Always consult a doctor."
+        )
 
-    # Combine text chunks with PDF name and page numbers
+    # Combine chunks for analysis
     context = "\n\n".join(
         [f"{meta['source']} | Page {meta['page_number']}: {chunk}" for chunk, meta in retrieved_docs]
     )
 
+    # Check if query (drug name) appears in context (case-insensitive)
+    if query.lower() not in context.lower():
+        return (
+            f"Response:\nThe drug '{query}' was not found in the existing PDF documentation.\n"
+            "Please fill out the contact form to request adding this drug to our records.\n\n"
+            "Citations: None\n"
+            "Disclaimer: For informational purposes only. Always consult a doctor."
+        )
+
+    # Prepare prompt for OpenRouter API
     prompt = f"""
 You are a medical assistant chatbot. Answer the user query using ONLY the provided PDF context.
 
 Rules:
 - Use the context below to answer the query.
-- Keep the answer clear.
-- At the end, add citations in this format:
-  Citations: page no: <page numbers>
-- Group multiple pages from the same PDF together in citations if applicable.
+- Keep the answer clear and concise.
+- At the end, add citations in this format: Citations: page numbers
+- Group multiple pages from the same PDF together if applicable.
 
 Context:
 {context}
@@ -71,43 +92,41 @@ Answer:
     payload = {
         "model": MODEL_ID,
         "messages": [
-            {
-                "role": "system",
-                "content": "You are a helpful AI assistant, like ChatGPT. "
-                           "Always answer clearly, conversationally, and cite page numbers at the end of response."
-            },
-            {
-                "role": "user",
-                "content": prompt
-            }
+            {"role": "system", "content": "You are a helpful AI assistant. Answer clearly and cite page numbers."},
+            {"role": "user", "content": prompt}
         ],
         "temperature": 0.7,
         "max_tokens": 2048,
     }
 
+    # Call API with retry
+    answer_text = ""
     for attempt in range(1, max_retries + 1):
         try:
             response = requests.post(API_URL, headers=headers, json=payload, timeout=30)
-
             if response.status_code == 200:
-                return response.json()["choices"][0]["message"]["content"]
+                answer_text = response.json()["choices"][0]["message"]["content"]
+                break
             elif response.status_code == 429:
-                # Rate limit error
-                print(f"High traffic detected. Retrying in {retry_delay} seconds... (Attempt {attempt}/{max_retries})")
                 time.sleep(retry_delay)
             else:
-                # Other API errors
-                return "We are currently experiencing technical issues. Please try again later."
-
+                answer_text = "We are currently experiencing technical issues. Please try again later."
+                break
         except requests.exceptions.RequestException:
-            print(f"Network or API error. Retrying in {retry_delay} seconds... (Attempt {attempt}/{max_retries})")
             time.sleep(retry_delay)
+    else:
+        answer_text = "We are currently experiencing high traffic. Please try again later."
 
-    # After all retries failed
-    return "We are currently experiencing high traffic. Please try again after some time."
+    # Format the final response neatly
+    formatted_response = (
+        f"Response:\n{answer_text.strip()}\n\n"
+        f"Citations: {', '.join(str(meta['page_number']) for _, meta in retrieved_docs)}\n"
+        "Disclaimer: For informational purposes only. Always consult a doctor."
+    )
+
+    return formatted_response
 
 
-
-if __name__ == "__main__":
-    query = "What is the use of paracetomol"
-    print(generate_answer(query))
+# if __name__ == "__main__":
+#     query = "What is rinvoq?"
+#     print(generate_answer(query))

@@ -40,7 +40,7 @@ export default function LandingPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1 }}
         >
-          ✨ ChatBot AI ✨
+          ✨ MedXplorer ✨
         </motion.h1>
 
         <motion.p
@@ -49,15 +49,13 @@ export default function LandingPage() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5, duration: 1 }}
         >
-          Your intelligent assistant for smarter conversations.
+          Your intelligent assistant! Where Medical Knowledge Meets AI...
         </motion.p>
 
         {/* Disclaimer */}
         <div className="mt-6 bg-gray-800/50 rounded-lg p-4 max-w-xl text-sm text-gray-400 border border-gray-700">
           <p>
-            ⚠️ Disclaimer: This chatbot is for informational and educational
-            purposes only. It may generate inaccurate responses. Please verify
-            information independently.
+            ⚠️ Disclaimer: For educational and informational purposes only and should not be considered medical advice. Always consult a qualified healthcare professional before making any medical decisions.
           </p>
         </div>
 
@@ -115,7 +113,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="py-4 text-center text-gray-500 text-sm border-t border-gray-800">
-        © {new Date().getFullYear()} ChatBot AI. All rights reserved.
+        © {new Date().getFullYear()} MedXplorer. All rights reserved.
       </footer>
     </div>
   );
